@@ -8,7 +8,7 @@ shinyUI(
         useShinyjs(),
         
     # Application title
-        titlePanel("Longevity in Heart Failure Patients by Factors"),
+        titlePanel("Factors Affecting Heart Failure Patients"),
     
 
         sidebarLayout(
