@@ -57,24 +57,36 @@ shinyUI(
     
                     tabPanel("1) # Pts", value = "A",
                              plotOutput(outputId = "count_age")),
-                    tabPanel("2) Survival F vs M", value = "B",
+                    tabPanel("2) Pre-Ex Cnd F vs M", value = "B",
+                             plotOutput(outputId = "count_factors")),
+                    tabPanel("3) Survival F vs M", value = "C",
                              fluidRow(
                                  column(6, plotOutput(outputId = "post_time_sex")),
-                                 column(6, plotOutput(outputId = "post_time_sex2")))),
-                    tabPanel("3) Pre-Ex Cnd F vs M", value = "C",
-                             plotOutput(outputId = "count_factors")),
+                                 column(6, plotOutput(outputId = "post_time_sex2"))),
+                             fluidRow(
+                                 column(6, textOutput(outputId = "post_time_sex_stats")),
+                                 column(6, textOutput(outputId = "post_time_sex2_stats")))),
                     tabPanel("4) SerNa vs SerCr", value = "D",
                              fluidRow(
                                  column(6, plotOutput(outputId = "sna_scr_filtered")),
-                                 column(6, plotOutput(outputId = "sna_scr_unfiltered")))),
+                                 column(6, plotOutput(outputId = "sna_scr_unfiltered"))),
+                             fluidRow(
+                                 column(6, textOutput(outputId = "sna_scr_filtered_stats")),
+                                 column(6, textOutput(outputId = "sna_scr_unfiltered_stats")))),
                     tabPanel("5) CrPhK vs SerCr", value = "E",
                              fluidRow(
                                  column(6, plotOutput(outputId = "crpk_scr_filtered")),
-                                 column(6, plotOutput(outputId = "crpk_scr_unfiltered")))),
+                                 column(6, plotOutput(outputId = "crpk_scr_unfiltered"))),
+                             fluidRow(
+                                 column(6, textOutput(outputId = "crphk_scr_filtered_stats")),
+                                 column(6, textOutput(outputId = "crphk_scr_unfiltered_stats")))),
                     tabPanel("6) No Evdnt Corr", value = "F",
                              fluidRow(
                                  column(6, plotOutput(outputId = "ef_scr")),
-                                 column(6, plotOutput(outputId = "plt_scr"))))
+                                 column(6, plotOutput(outputId = "plt_scr"))),
+                             fluidRow(
+                                 column(6, textOutput(outputId = "ef_scr_unfiltered_stats")),
+                                 column(6, textOutput(outputId = "plt_scr_unfiltered_stats"))))
                 )
             )
         )

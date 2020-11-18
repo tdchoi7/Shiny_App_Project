@@ -26,22 +26,6 @@ hearts = hearts_full %>%
   # mutate(., smoking = gsub(pattern = 0, replacement = "No", x = smoking, ignore.case = F)) %>% 
   # mutate(., smoking = gsub(pattern = 1, replacement = "Yes", x = smoking, ignore.case = F))
   
-head(hearts)
-
-
-hearts_2 = hearts_full %>% 
-  select(., 
-         Age = age,
-         `Creatinine Phosphokinase` = creatinine_phosphokinase,
-         Platelets = platelets,
-         
-         )
-
-head(hearts_2)
-
-
-
-
 
 
 
