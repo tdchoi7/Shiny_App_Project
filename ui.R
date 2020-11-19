@@ -1,18 +1,21 @@
 
 
 
-# Define UI for application that draws a histogram
+
+# Define UI for application
 shinyUI(
     fluidPage(
         
         useShinyjs(),
         
     # Application title
-        titlePanel("Factors Affecting Heart Failure Patients"),
+        titlePanel("Factors Affecting Longevity of Heart Failure Patients"),
     
 
         sidebarLayout(
             sidebarPanel(
+                
+# Widgets ---------------------------------------------------------------------------------------
                 
                 # slider widget to adjust bin width
                 sliderInput(
@@ -22,7 +25,8 @@ shinyUI(
                     max = 20,
                     value = 10,
                     step = 2,
-                    ticks = F),
+                    ticks = F
+                    ),
             
                 # slider widget to adjust age range in graphs
                 sliderInput(
@@ -33,60 +37,78 @@ shinyUI(
                     value = c(60, 75),
                     dragRange = T,
                     round = T,
-                    ticks = F),
+                    ticks = F
+                    ),
                 
                 # checkbox to allow Tab 4's graph to be adjusted by the age slider above
                 checkboxInput(
                     inputId = "adjust_age",
                     label = "Allow Age Adjustment",
                     value = FALSE
-                      ),
+                    ),
                 
                 # checkbox to filter out for DEATH_EVENT == 1
                 checkboxInput(
                     inputId = "yes_death",
                     label = "Filter for Culmination in Death Event",
                     value = FALSE
-                      )),
+                    )
+                ),
                 
                 
         mainPanel(
             
-            textOutput("tabtext"),
-                tabsetPanel(id = "my_tabs",
-    
+            # allows for tabular input in server.R using the values to designate tabs
+            tabsetPanel(id = "my_tabs",
+
+# Tabs ------------------------------------------------------------------------------------------
+                           
                     tabPanel("1) # Pts", value = "A",
-                             plotOutput(outputId = "count_age")),
+                             plotOutput(outputId = "count_age")
+                             ),
+                    
                     tabPanel("2) Pre-Ex Cnd F vs M", value = "B",
-                             plotOutput(outputId = "count_factors")),
+                             plotOutput(outputId = "count_factors"),
+                             fluidRow(
+                                 column(6, htmlOutput(outputId = "count_factors_stats_female")),
+                                 column(6, htmlOutput(outputId = "count_factors_stats_male")))
+                             ),
+                    
                     tabPanel("3) Survival F vs M", value = "C",
                              fluidRow(
                                  column(6, plotOutput(outputId = "post_time_sex")),
                                  column(6, plotOutput(outputId = "post_time_sex2"))),
                              fluidRow(
-                                 column(6, textOutput(outputId = "post_time_sex_stats")),
-                                 column(6, textOutput(outputId = "post_time_sex2_stats")))),
+                                 column(6, htmlOutput(outputId = "post_time_sex_stats")),
+                                 column(6, htmlOutput(outputId = "post_time_sex2_stats")))
+                             ),
+                    
                     tabPanel("4) SerNa vs SerCr", value = "D",
                              fluidRow(
                                  column(6, plotOutput(outputId = "sna_scr_filtered")),
                                  column(6, plotOutput(outputId = "sna_scr_unfiltered"))),
                              fluidRow(
-                                 column(6, textOutput(outputId = "sna_scr_filtered_stats")),
-                                 column(6, textOutput(outputId = "sna_scr_unfiltered_stats")))),
+                                 column(6, htmlOutput(outputId = "sna_scr_filtered_stats")),
+                                 column(6, htmlOutput(outputId = "sna_scr_unfiltered_stats")))
+                             ),
+                    
                     tabPanel("5) CrPhK vs SerCr", value = "E",
                              fluidRow(
                                  column(6, plotOutput(outputId = "crpk_scr_filtered")),
                                  column(6, plotOutput(outputId = "crpk_scr_unfiltered"))),
                              fluidRow(
-                                 column(6, textOutput(outputId = "crphk_scr_filtered_stats")),
-                                 column(6, textOutput(outputId = "crphk_scr_unfiltered_stats")))),
+                                 column(6, htmlOutput(outputId = "crphk_scr_filtered_stats")),
+                                 column(6, htmlOutput(outputId = "crphk_scr_unfiltered_stats")))
+                             ),
+                    
                     tabPanel("6) No Evdnt Corr", value = "F",
                              fluidRow(
                                  column(6, plotOutput(outputId = "ef_scr")),
                                  column(6, plotOutput(outputId = "plt_scr"))),
                              fluidRow(
-                                 column(6, textOutput(outputId = "ef_scr_unfiltered_stats")),
-                                 column(6, textOutput(outputId = "plt_scr_unfiltered_stats"))))
+                                 column(6, htmlOutput(outputId = "ef_scr_unfiltered_stats")),
+                                 column(6, htmlOutput(outputId = "plt_scr_unfiltered_stats")))
+                    )
                 )
             )
         )

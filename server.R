@@ -1,10 +1,16 @@
 
 
 
+
 shinyServer(
 
     function(input, output, session) {
 
+     
+           
+# Widget Adjuster ------------------------------------------------------------------------------------------------
+
+        # observeEvents that allow widgets to filter the data being used
         
         # hides the age adjustment slider based on checkbox input
         observeEvent(input$adjust_age, {
@@ -12,6 +18,22 @@ shinyServer(
                 showElement("age")
             } else {
                 hideElement("age")
+            }
+        })
+        
+        
+        # resets the parameters set by the widgets upon selection of new tab
+            # except for tab C where reset is explicitly called in the block below
+        observeEvent(input$my_tabs, {
+            if (input$my_tabs == "A" |
+                input$my_tabs == "B" |
+                input$my_tabs == "D" |
+                input$my_tabs == "E" |
+                input$my_tabs == "F") {
+                reset("bins")
+                reset("age")
+                reset("adjust_age")
+                reset("yes_death")
             }
         })
         
@@ -25,20 +47,19 @@ shinyServer(
                 input$my_tabs == "D" |
                 input$my_tabs == "E" |
                 input$my_tabs == "F") {
-
-                    toggleElement("age") &
+                    hideElement("age") &
                     showElement("adjust_age") &
                     showElement("yes_death")
             } else if (input$my_tabs == "C") {
+                    reset("age") &
+                    showElement("age") &    
                     hideElement("adjust_age") &
-                    hideElement("yes_death") &
-                    showElement("age")
+                    hideElement("yes_death")
             }
         })
         
-        
-        ########################################################################################
-        
+    #* Filters Associated with Widgets ========================================================================
+
         # allows for reactive input from slider to adjust graph accordingly
         hearts_slider = reactive({
             hearts %>% 
@@ -71,11 +92,13 @@ shinyServer(
             }
             
         })
-        
-        ########################################################################################
 
-        # "No. Pts Pre-Ex Cnd"
-        output$count_age = renderPlot(
+        
+        
+# Plot for Tab 1 (# Pts) ----------------------------------------------------------------------------------------
+
+        # Plot for tab "# Pts"
+        output$count_age = renderPlot({
             hearts %>% 
                 ggplot(aes(x = age)) + 
                 labs(title = "Number of Patients by Age Group (Adjustable Bin Width)", 
@@ -87,12 +110,14 @@ shinyServer(
                 scale_x_continuous(breaks = round(seq(min(hearts$age), 
                                                       max(hearts$age), by = 5), 1)) +
                 theme_bw()
-        )
+        })
+    
+
         
-        ########################################################################################
-        
-        # "Pre-Ex Cnd F vs M"
-        output$count_factors = renderPlot(
+# Plot for Tab 2 (Pre-Ex Cnd F vs M) ------------------------------------------------------------------------------
+
+        # Plot for tab "Pre-Ex Cnd F vs M"
+        output$count_factors = renderPlot({
             death_filter() %>% 
                 summarise(., 
                           Anaemia = sum(anaemia),
@@ -109,11 +134,43 @@ shinyServer(
                      x = "Pre-Existing Conditions", y = "Number of Patients") +
                 scale_fill_brewer(palette = 'Set1') +
                 theme_bw()
-        )
+        })
         
-        ########################################################################################
+    #* Tab 2 Filters, Statistical Calculations, and Outputs =======================================================
         
-        # "Survival F vs M"
+        # Calculate total number of females represented on the graph
+        num_female = reactive({
+            death_filter() %>% filter(., sex == "F")
+        })
+            
+        output$count_factors_stats_female = renderText({
+            paste(
+                "The total number of ",
+                "<i>", "females ", "</i>",
+                "is: ",
+                "<b>", NROW(num_female()), "</b>"
+            )
+        })
+        
+        # Calculate total number of males represented on the graph
+        num_male = reactive({
+            death_filter() %>% filter(., sex == "M")
+        })
+            
+        output$count_factors_stats_male = renderText({
+            paste(
+                "The total number of ",
+                "<i>", "males ", "</i>",
+                "is: ",
+                "<b>", NROW(num_male()), "</b>"
+            )
+        })
+        
+        
+
+# Plot for Tab 3 (Survival F vs M) ----------------------------------------------------------------------------------
+        
+        # Plot for tab "Survival F vs M"
         output$post_time_sex = renderPlot(
             hearts_slider() %>% 
                 filter(., DEATH_EVENT == 1) %>% 
@@ -150,6 +207,10 @@ shinyServer(
                 theme_bw()
         )
         
+    #* Tab 3 Filters, Statistical Calculations, and Outputs--------------------------------------------------------------
+        
+        # preparation for statistical calculation and output by setting a reactive filter to 
+        # work in concert with the hearts slider input used for the graph above
         hearts_slider_t_test_male_death = reactive({
             hearts_slider() %>% 
                 filter(., sex=="M", DEATH_EVENT == 1)
@@ -170,6 +231,7 @@ shinyServer(
                 filter(., sex=="F") 
             })
         
+        #** statistical calculation and outputs ############################################################################
         hearts_slider_t_test_death = reactive({
             t.test(hearts_slider_t_test_female_death()$time,
                    hearts_slider_t_test_male_death()$time,
@@ -183,18 +245,33 @@ shinyServer(
             })
         
         output$post_time_sex_stats = renderText({
-            paste("The T-Test statistics between females and males (respectively) for longevity are t-stat: ",
-                  signif(hearts_slider_t_test_death()$statistic, digits = 3), "/p-value: ", signif(hearts_slider_t_test_death()$p.value, digits = 3), ".")
+            paste("The T-Test statistics between females and males (respectively) for ", 
+                  "<i>", "longevity", "</i>",  
+                  "while accounting only for death events is:",
+                  "<br/>",
+                  "<b>", signif(hearts_slider_t_test_death()$statistic, digits = 3), "</b>", 
+                  "and the p-value is: ",
+                  "<b>", signif(hearts_slider_t_test_death()$p.value, digits = 3), "</b>", 
+                  "<br/>")
             })
         
         output$post_time_sex2_stats = renderText({
-            paste("The T-Test statistics between females and males (respectively) for longevity are t-stat: ",
-                  signif(hearts_slider_t_test_no_death()$statistic, digits = 3), "/p-value: ", signif(hearts_slider_t_test_no_death()$p.value, digits = 3), ".")
+            paste("The T-Test statistic between females and males (respectively) for ", 
+                  "<i>", "longevity", "</i>", 
+                  "while accounting for death events ", 
+                  "<i>", "and", "</i>", 
+                  "loss of contact is:",
+                  "<br/>",
+                  "<b>", signif(hearts_slider_t_test_no_death()$statistic, digits = 3), "</b>",
+                  "and the p-value is: ",
+                  "<b>", signif(hearts_slider_t_test_no_death()$p.value, digits = 3), "</b>")
             })
         
-        ########################################################################################
         
-        # "Serum Creatinine vs Serum Sodium"
+
+# Plot for Tab 4 (SerNa vs SerCr) ------------------------------------------------------------------------------
+        
+        # Plots for tab "Serum Creatinine vs Serum Sodium"
         death_filter_high_scr = reactive({death_filter() %>% 
                 filter(., 
                        ifelse(sex == "M", serum_creatinine >=1.5, serum_creatinine >=1.2))})
@@ -224,13 +301,14 @@ shinyServer(
                 theme_bw()
         )
         
+    #* Tab 4 Filters, Statistical Calculations, and Outputs ======================================================
         
-        # Correlation calculation and output
-        
+        #** Tab 4 Filters, Statistical Calculations for Male ########################################
         
         # *** MALE MALE MALE ***
         
-        # filter serum creatinine for males with high serum creatinine
+        # preparation for statistical calculation and output by setting a reactive filter to 
+        # work in concert with the hearts slider input used for the graph above
         death_filter_scr_male_high_scr = reactive({
             death_filter_high_scr() %>% 
                 filter(., sex=="M") %>% 
@@ -272,9 +350,12 @@ shinyServer(
             })
         
 
+        #** Tab 4 Filters, Statistical Calculations for Female ######################################
         
         # *** FEMALE FEMALE FEMALE FEMALE ***
         
+        # preparation for statistical calculation and output by setting a reactive filter to 
+        # work in concert with the hearts slider input used for the graph above
         # filter serum creatinine for females with high serum creatinine
         death_filter_scr_female_high_scr = reactive({
             death_filter_high_scr() %>%
@@ -317,52 +398,113 @@ shinyServer(
             })
         
 
-
+        #** Tab 4 T Test #######################################################################################
+        
         # t test between male and female
         # serum creatinine with high serum creatinine
         scr_t_test_high_scr_filter = reactive({
             t.test(death_filter_scr_male_high_scr()$serum_creatinine,
                    death_filter_scr_female_high_scr()$serum_creatinine,
-                   alternative = "two.sided")})
+                   alternative = "two.sided")
+            })
         
         # serum sodium with high serum creatinine
         sna_t_test_high_scr_filter = reactive({
             t.test(death_filter_sna_male_high_scr()$serum_sodium,
                    death_filter_sna_female_high_scr()$serum_sodium,
-                   alternative = "two.sided")})
+                   alternative = "two.sided")
+            })
         
         # serum creatinine
         scr_t_test_unfilter = reactive({
             t.test(death_filter_scr_male()$serum_creatinine,
                    death_filter_scr_female()$serum_creatinine,
-                   alternative = "two.sided")})
+                   alternative = "two.sided")
+            })
         
         # serum sodium
         sna_t_test_unfilter = reactive({
             t.test(death_filter_sna_male()$serum_sodium,
                    death_filter_sna_female()$serum_sodium,
-                   alternative = "two.sided")})
+                   alternative = "two.sided")
+            })
         
+        #** Tab 4 Output ########################################################################################### 
         
+        # text output for graph 1
         output$sna_scr_filtered_stats = renderText({
-            paste("The Pearson correlation coefficients between Serum Creatinine and Serum Sodium for females and males (respectively) with high Serum Creatinine are ",
-                  signif(tested_4_fil_female_cor(), digits = 3), " and ", signif(tested_4_fil_male_cor(), digits = 3),".", 
-                  "The T-Test statistics between females and males for Serum Creatinine and for Serum Sodium (respectively) are t-stat: ",
-                  signif(scr_t_test_high_scr_filter()$statistic, digits = 3), "/p-value: ", signif(scr_t_test_high_scr_filter()$p.value, digits = 3),
-                  " and t-stat: ", signif(sna_t_test_high_scr_filter()$statistic, digits = 3), "/p-value: ", signif(sna_t_test_high_scr_filter()$p.value, digits = 3), ".")})
+            paste("The Pearson correlation coefficient between ",
+                  "<i>", "Serum Creatinine levels and Serum Sodium levels ", "</i>", 
+                  "for females with high Serum Creatinine levels is:", 
+                  "<br/>",
+                  "<b>", signif(tested_4_fil_female_cor(), digits = 3), "</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The Pearson correlation coefficient between ",
+                  "<i>", "Serum Creatinine levels and Serum Sodium levels ", "</i>",
+                  "for males with high Serum Creatinine levels is:",
+                  "<br/>",
+                  "<b>", signif(tested_4_fil_male_cor(), digits = 3), "</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The T-Test statistic for ", 
+                  "<i>", "Serum Creatinine levels ", "</i>",
+                  "between females and males with high Serum Creatinine is:",
+                  "<br/>", 
+                  "<b>", signif(scr_t_test_high_scr_filter()$statistic, digits = 3), "</b>", 
+                  "and the p-value is: ", 
+                  "<b>", signif(scr_t_test_high_scr_filter()$p.value, digits = 3), "</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The T-Test statistic for ", 
+                  "<i>", "Serum Sodium levels ", "</i>",
+                  "between females and males with high Serum Creatinine is: ",
+                  "<br/>",
+                  "<b>", signif(sna_t_test_high_scr_filter()$statistic, digits = 3), "</b>", 
+                  "and the p-value is: ",
+                  "<b>", signif(sna_t_test_high_scr_filter()$p.value, digits = 3), "</b>", 
+                  "<br/>")
+            })
         
+        # text output for graph 2
         output$sna_scr_unfiltered_stats = renderText({
-            paste("The Pearson correlation coefficients between Serum Creatinine and Serum Sodium for females and males (respectively) are ",
-                  signif(tested_4_unfil_female_cor(), digits = 3), " and ", signif(tested_4_unfil_male_cor(), digits = 3),". ", 
-                  "The T-Test statistics between females and males for Serum Creatinine and for Serum Sodium (respectively) are t-stat: ",
-                  signif(scr_t_test_unfilter()$statistic, digits = 3), "/p-value: ", signif(scr_t_test_unfilter()$p.value, digits = 3),
-                  " and t-stat: ", signif(sna_t_test_unfilter()$statistic, digits = 3),"/p-value: ", signif(sna_t_test_unfilter()$p.value, digits = 3), ".")})
+            paste("The Pearson correlation coefficient between ",
+                  "<i>", "Serum Creatinine levels and Serum Sodium levels ", "</i>", 
+                  " for all females is:",
+                  "<br/>",
+                  "<b>", signif(tested_4_unfil_female_cor(), digits = 3),"</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The Pearson correlation coefficient between ",
+                  "<i>", "Serum Creatinine levels and Serum Sodium levels ", "</i>", 
+                  " for all males is:",
+                  "<br/>",
+                  "<b>", signif(tested_4_unfil_male_cor(), digits = 3), "</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The T-Test statistic for ", 
+                  "<i>", "Serum Creatinine levels ", "</i>",
+                  "between all females and all males is:",
+                  "<br/>", 
+                  "<b>", signif(scr_t_test_unfilter()$statistic, digits = 3), "</b>", 
+                  "and the p-value is: ",
+                  "<b>", signif(scr_t_test_unfilter()$p.value, digits = 3), "</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The T-Test statistic for ", 
+                  "<i>", "Serum Creatinine levels ", "</i>",
+                  "between all females and all males is:",
+                  "<br/>",
+                  "<b>", signif(sna_t_test_unfilter()$statistic, digits = 3),"</b>", 
+                  "and the p-value is: ",
+                  "<b>", signif(sna_t_test_unfilter()$p.value, digits = 3), "</b>")
+            })
         
 
         
-        ########################################################################################
-        
-        # "CrPhK vs Creatinine"
+# Plots for Tab 5 (CrPhK vs SerCr) ----------------------------------------------------------------------
+
+        # Plots for tab "CrPhK vs Creatinine"
         output$crpk_scr_filtered = renderPlot(
             
             death_filter() %>% 
@@ -371,7 +513,7 @@ shinyServer(
                 ggplot(aes(x = creatinine_phosphokinase, y = serum_creatinine)) +
                 geom_point(aes(color = sex), alpha = 0.5) +
                 geom_line(stat = "smooth", aes(color = sex), se = F, alpha = 0.25, size = 2) +
-                labs(title = "Creatinine Phosphokinase vs Serum Creatinine Filtered if High Serum Creatinine (Adjusted by Sex)", 
+                labs(title = "Creatinine Phosphokinase vs Serum Creatinine Filtered if High Serum Creatinine (by Sex)", 
                      y = "Serum Creatinine mg/dL", x = "Creatinine Phosphokinase mcg/L") +
                 scale_color_brewer(palette = 'Set1') +
                 theme_bw()
@@ -388,9 +530,13 @@ shinyServer(
                 scale_color_brewer(palette = 'Set1') +
                 theme_bw()
         )
-        
+
+    #* Tab 5 Filters, Statistical Calculations, and Outputs==================================================
+       
         # Correlation calculation and output
         # refer to "Sodium vs Creatinine" above for filters for Serum Creatinine
+        
+        #** Tab 5 Filters, Statistical Calculations for Male ######################################
         
         # *** MALE MALE MALE ***
         
@@ -423,6 +569,7 @@ shinyServer(
         })
         
         
+        #** Tab 5 Filters, Statistical Calculations for Female ######################################
         
         # *** FEMALE FEMALE FEMALE FEMALE ***
         
@@ -455,34 +602,80 @@ shinyServer(
         })
         
         
-        # T test between male and female
+        #** Tab 5 T test #################################################################################
+       
         # t statistic for Creatinine phosphokinase for high serum creatinine
         crphk_t_test_high_scr_filter = reactive({
             t.test(death_filter_crphk_male_high_scr()$creatinine_phosphokinase,
                    death_filter_crphk_female_high_scr()$creatinine_phosphokinase,
-                   alternative = "two.sided")})
+                   alternative = "two.sided")
+            })
         
         # t statistic for Creatinine phosphokinase
         crphk_t_test_unfilter = reactive({
             t.test(death_filter_crphk_male()$creatinine_phosphokinase,
                    death_filter_crphk_female()$creatinine_phosphokinase,
-                   alternative = "two.sided")})
+                   alternative = "two.sided")
+            })
         
+        #** Tab 5 Output #################################################################################
+       
+         # text output for graph 1
         output$crphk_scr_filtered_stats = renderText({
-            paste("The Pearson correlation coefficients between Serum Creatinine and Creatinine Phosphokinase for females and males (respectively) with high Serum Creatinine are ",
-                  signif(tested_5_fil_female_cor(), digits = 3), " and ", signif(tested_5_fil_male_cor(), digits = 3),".", 
-                  "The T-Test statistics between females and males for Creatinine Phosphokinase among patients with high Serum creatinine are t-stat: ",
-                  signif(crphk_t_test_high_scr_filter()$statistic, digits = 3), "/p-value: ", signif(crphk_t_test_high_scr_filter()$p.value, digits = 3), ".")})
+            paste("The Pearson correlation coefficient between ", 
+                  "<i>", "Serum Creatinine levels and Creatinine Phosphokinase levels ", "</i>",
+                  "for females with high Serum Creatinine levels is:",
+                  "<br/>",
+                  "<b>", signif(tested_5_fil_female_cor(), digits = 3), "</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The Pearson correlation coefficient between ", 
+                  "<i>", "Serum Creatinine levels and Creatinine Phosphokinase levels ", "</i>",
+                  "for males with high Serum Creatinine levels is:", 
+                  "<br/>",
+                  "<b>", signif(tested_5_fil_male_cor(), digits = 3), "</b>", 
+                  "<br/>", 
+                  "<br/>", 
+                  "The T-Test statistics for ",
+                  "<i>", "Creatinine Phosphokinase levels ", "</i>",
+                  "between females and males with high Serum Creatinine levels is:",
+                  "<br/>",
+                  "<b>", signif(crphk_t_test_high_scr_filter()$statistic, digits = 3), "</b>",
+                  "and the p-value is:",
+                  "<b>", signif(crphk_t_test_high_scr_filter()$p.value, digits = 3), "</b>", 
+                  "<br/>")
+            })
         
+        # text output for graph 2
         output$crphk_scr_unfiltered_stats = renderText({
-            paste("The Pearson correlation coefficients between Serum Creatinine and Creatinine Phosphokinase for females and males (respectively) are ",
-                  signif(tested_5_unfil_female_cor(), digits = 3), " and ", signif(tested_5_unfil_male_cor(), digits = 3),". ", 
-                  "The T-Test statistics between females and males for Creatinine Phosphokinase are t-stat: ",
-                  signif(crphk_t_test_unfilter()$statistic, digits = 3), "/p-value: ", signif(crphk_t_test_unfilter()$p.value, digits = 3), ".")})
+            paste("The Pearson correlation coefficient between ", 
+                  "<i>", "Serum Creatinine levels and Creatinine Phosphokinase levels ", "</i>",
+                  "for all females is:",
+                  "<br/>",
+                  "<b>", signif(tested_5_unfil_female_cor(), digits = 3), "</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The Pearson correlation coefficient between ", 
+                  "<i>", "Serum Creatinine levels and Creatinine Phosphokinase levels ", "</i>",
+                  "for males is:", 
+                  "<br/>",
+                  "<b>", signif(tested_5_unfil_male_cor(), digits = 3), "</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The T-Test statistic for ",
+                  "<i>", "Creatinine Phosphokinase levels ", "</i>",
+                  "between all females and all males is:",
+                  "<br/>",
+                  "<b>", signif(crphk_t_test_unfilter()$statistic, digits = 3), "</b>", 
+                  "and the p-value is: ",
+                  "<b>", signif(crphk_t_test_unfilter()$p.value, digits = 3), "</b>")
+            })
 
-        ########################################################################################
+
         
-        # ejection fraction vs Creatinine
+# 1st Plot for Tab 6 (No Evdnt Corr) ---------------------------------------------------------------------------
+        
+        # Plot for tab "No Evdnt Corr"
         output$ef_scr = renderPlot(
             
             death_filter() %>% 
@@ -494,6 +687,8 @@ shinyServer(
                 scale_color_brewer(palette = 'Set1') +
                 theme_bw()
         )
+
+    #* Tab 6a Filters, Statistical Calculations, and Outputs ======================================================     
         
         # *** MALE MALE MALE ***
         
@@ -522,6 +717,8 @@ shinyServer(
                 select(., ejection_fraction)
         })
         
+        #** Tab 6a T Test ############################################################################################
+        
         # correlation calculation for female serum creatinine and female serum sodium 
         tested_6a_unfil_female_cor = reactive({cor.test(death_filter_scr_female()$serum_creatinine,
                                                        death_filter_ef_female()$ejection_fraction,
@@ -535,16 +732,37 @@ shinyServer(
                    death_filter_ef_female()$ejection_fraction,
                    alternative = "two.sided")})
         
+        #** Tab 6a Output ############################################################################################
+        
         # t statistic for ejection fraction
         output$ef_scr_unfiltered_stats = renderText({
-            paste("The Pearson correlation coefficients between Serum Creatinine and Ejection Fraction for females and males (respectively) are ",
-                  signif(tested_6a_unfil_female_cor(), digits = 3), " and ", signif(tested_6a_unfil_male_cor(), digits = 3),". ", 
-                  "The T-Test statistic between females and males for Ejection Fraction is t-stat: ",
-                  signif(ef_t_test_unfilter()$statistic, digits = 3), "/p-value: ", signif(ef_t_test_unfilter()$p.value, digits = 3), ".")})
+            paste("The Pearson correlation coefficient between ", 
+                  "<i>", "Serum Creatinine and Ejection Fraction ", "</i>",
+                  "for all females is:",
+                  "<br/>",
+                  "<b>", signif(tested_6a_unfil_female_cor(), digits = 3), "</b>",
+                  "<br/>",
+                  "<br/>",
+                  "The Pearson correlation coefficient between ", 
+                  "<i>", "Serum Creatinine and Ejection Fraction ", "</i>",
+                  "for all males is:", 
+                  "<br/>",
+                  "<b>", signif(tested_6a_unfil_male_cor(), digits = 3), "</b>", 
+                  "<br/>", 
+                  "<br/>", 
+                  "The T-Test statistic between all females and all males for ",
+                  "<i>", "Ejection Fraction", "</i>",
+                  "is:", 
+                  "<br/>",
+                  "<b>", signif(ef_t_test_unfilter()$statistic, digits = 3), "</b>",
+                  "and the p-value is: ", 
+                  "<b>", signif(ef_t_test_unfilter()$p.value, digits = 3), "</b>")})
         
-        ########################################################################################
         
-        # Platelets vs Creatinine
+
+# 2nd Plot for Tab 6 (No Evdnt Corr) -----------------------------------------------------------------------------------
+
+        # 2nd Plot for tab "No Evdnt Corr"
         output$plt_scr = renderPlot(
             
             death_filter() %>% 
@@ -557,9 +775,9 @@ shinyServer(
                 theme_bw()
         )
         
+    #* Tab 6b Filters, Statistical Calculations, and Outputs ============================================================  
         
         # *** MALE MALE MALE ***
-        
         
         # filter ejection fraction for males
         death_filter_plt_male = reactive({
@@ -591,6 +809,9 @@ shinyServer(
                                                         method = "pearson")$estimate
         })
         
+        
+        #** Tab 6b T Test ##################################################################################################
+        
         # T test between male and female
         # t statistic for platelets for high serum creatinine
         plt_t_test_unfilter = reactive({
@@ -598,12 +819,31 @@ shinyServer(
                    death_filter_plt_female()$platelets,
                    alternative = "two.sided")})
         
+        #** Tab 6b Output ###################################################################################################
+        
         # t statistic for platelets
         output$plt_scr_unfiltered_stats = renderText({
-            paste("The Pearson correlation coefficients between Serum Creatinine and Platelets for females and males (respectively) are ",
-                  signif(tested_6b_unfil_female_cor(), digits = 3), " and ", signif(tested_6b_unfil_male_cor(), digits = 3),". ", 
-                  "The T-Test statistic between females and males for Platelets is t-stat: ",
-                  signif(plt_t_test_unfilter()$statistic, digits = 3), "/p-value: ", signif(plt_t_test_unfilter()$statistic, digits = 3), ".")})
+            paste("The Pearson correlation coefficient between ", 
+                  "<i>", "Serum Creatinine and Platelets", "</i>",
+                  "for all females is:",
+                  "<br/>",
+                  "<b>", signif(tested_6b_unfil_female_cor(), digits = 3), "</b>",
+                  "<br/>",
+                  "<br/>",
+                  "The Pearson correlation coefficient between ", 
+                  "<i>", "Serum Creatinine and Platelets", "</i>",
+                  "for all males is:",
+                  "<br/>",
+                  "<b>", signif(tested_6b_unfil_male_cor(), digits = 3), "</b>", 
+                  "<br/>",
+                  "<br/>",
+                  "The T-Test statistic between all females and all males for ",
+                  "<i>", "Platelets ", "</i>",
+                  "is:",
+                  "<br/>",
+                  "<b>", signif(plt_t_test_unfilter()$statistic, digits = 3), "</b>",
+                  "and the p-value is: ",
+                  "<b>", signif(plt_t_test_unfilter()$p.value, digits = 3), "</b>")})
 
 })
 
