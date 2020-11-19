@@ -2,7 +2,6 @@
 
 
 
-# Define UI for application
 shinyUI(
     fluidPage(
         
@@ -20,7 +19,7 @@ shinyUI(
                 # slider widget to adjust bin width
                 sliderInput(
                     inputId = "bins",
-                    label = "Bin Width Adjustment Range",
+                    label = "Bin Width Adjustment",
                     min = 2,
                     max = 20,
                     value = 10,
@@ -31,7 +30,7 @@ shinyUI(
                 # slider widget to adjust age range in graphs
                 sliderInput(
                     inputId = "age",
-                    label = "Age Adjustment Range",
+                    label = "Age Adjustment",
                     min = min(hearts$age),
                     max = max(hearts$age),
                     value = c(60, 75),
@@ -43,14 +42,14 @@ shinyUI(
                 # checkbox to allow Tab 4's graph to be adjusted by the age slider above
                 checkboxInput(
                     inputId = "adjust_age",
-                    label = "Allow Age Adjustment",
+                    label = HTML("<b>", "Check Box to Allow Age Adjustment", "</b>"),
                     value = FALSE
                     ),
                 
                 # checkbox to filter out for DEATH_EVENT == 1
                 checkboxInput(
                     inputId = "yes_death",
-                    label = "Filter for Culmination in Death Event",
+                    label = HTML("<b>", "Check Box to Filter for Culmination in Death Event", "</b>"),
                     value = FALSE
                     )
                 ),
@@ -70,8 +69,7 @@ shinyUI(
                     tabPanel("2) Pre-Ex Cnd F vs M", value = "B",
                              plotOutput(outputId = "count_factors"),
                              fluidRow(
-                                 column(6, htmlOutput(outputId = "count_factors_stats_female")),
-                                 column(6, htmlOutput(outputId = "count_factors_stats_male")))
+                                 htmlOutput(outputId = "count_factors_stats"))
                              ),
                     
                     tabPanel("3) Survival F vs M", value = "C",

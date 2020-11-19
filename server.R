@@ -101,7 +101,7 @@ shinyServer(
         output$count_age = renderPlot({
             hearts %>% 
                 ggplot(aes(x = age)) + 
-                labs(title = "Number of Patients by Age Group (Adjustable Bin Width)", 
+                labs(title = "Number of Patients by Age Group", 
                      x = "Age", y = "Number of Patients") +
                 geom_histogram(binwidth = input$bins, 
                                fill = "purple", 
@@ -130,7 +130,7 @@ shinyServer(
                          stat = "identity", 
                          position = "dodge", 
                          alpha = 0.3) +
-                labs(title = "Number of Patients with Pre-Existing Conditions (Adjustable Age)", 
+                labs(title = "Number of Patients with Pre-Existing Conditions", 
                      x = "Pre-Existing Conditions", y = "Number of Patients") +
                 scale_fill_brewer(palette = 'Set1') +
                 theme_bw()
@@ -138,33 +138,31 @@ shinyServer(
         
     #* Tab 2 Filters, Statistical Calculations, and Outputs =======================================================
         
-        # Calculate total number of females represented on the graph
+        # Filter for total number of females represented on the graph
         num_female = reactive({
             death_filter() %>% filter(., sex == "F")
         })
-            
-        output$count_factors_stats_female = renderText({
+        
+        # Filter for total number of males represented on the graph
+        num_male = reactive({
+            death_filter() %>% filter(., sex == "M")
+        })
+        
+        # Calculate and output the count for females and males
+        output$count_factors_stats = renderText({
             paste(
                 "The total number of ",
                 "<i>", "females ", "</i>",
                 "is: ",
-                "<b>", NROW(num_female()), "</b>"
-            )
-        })
-        
-        # Calculate total number of males represented on the graph
-        num_male = reactive({
-            death_filter() %>% filter(., sex == "M")
-        })
-            
-        output$count_factors_stats_male = renderText({
-            paste(
+                "<b>", NROW(num_female()), "</b>",
+                "<br/>",
                 "The total number of ",
                 "<i>", "males ", "</i>",
                 "is: ",
                 "<b>", NROW(num_male()), "</b>"
             )
         })
+        
         
         
 
@@ -184,7 +182,7 @@ shinyServer(
                                  color = sex),
                              position = position_nudge(x = 0.45),
                              size = 4) +
-                labs(title = "Days Until Death (Adjustable Age - Youngest Age: 42)", 
+                labs(title = "Days Until Death (Youngest Age: 42)", 
                      x = "Sex", y = "Number of Days") +
                 scale_fill_brewer(palette = 'Set1') +
                 theme_bw())
@@ -201,7 +199,7 @@ shinyServer(
                                  color = sex),
                              position = position_nudge(x = 0.45),
                              size = 4) +
-                labs(title = "Days Until Death or Loss of Contact (Adjustable Age - Youngest Age: 40)", 
+                labs(title = "Days Until Death or Loss of Contact (Youngest Age: 40)", 
                      x = "Sex", y = "Number of Days") +
                 scale_fill_brewer(palette = 'Set1') +
                 theme_bw()
@@ -283,7 +281,7 @@ shinyServer(
                 ggplot(aes(x = serum_creatinine, y = serum_sodium)) +
                 geom_point(aes(color = sex), alpha = 0.5) +
                 geom_line(stat = "smooth", aes(color = sex), se = F, alpha = 0.25, size = 2) +
-                labs(title = "Serum Creatinine vs Serum Sodium Filtered if High Serum Creatinine (Adjusted by Sex)", 
+                labs(title = "Serum Creatinine vs Serum Sodium Filtered if High Serum Creatinine", 
                      x = "Serum Creatinine mg/dL", y = "Serum Sodium mEq/L") +
                 scale_color_brewer(palette = 'Set1') +
                 theme_bw()
@@ -429,6 +427,7 @@ shinyServer(
                    alternative = "two.sided")
             })
         
+        
         #** Tab 4 Output ########################################################################################### 
         
         # text output for graph 1
@@ -555,14 +554,14 @@ shinyServer(
                 select(., creatinine_phosphokinase)
         })
         
-        # correlation calculation for male serum creatinine and male serum sodium for high serum creatinine
+        # correlation calculation for male creatinine phosphokinase and male serum creatinine for high serum creatinine
         tested_5_fil_male_cor = reactive({cor.test(death_filter_scr_male_high_scr()$serum_creatinine,
                                                    death_filter_crphk_male_high_scr()$creatinine_phosphokinase,
                                                    method = "pearson")$estimate
         })
         
         
-        # correlation calculation for male serum creatinine and male serum sodium 
+        # correlation calculation for male creatinine phosphokinase and male serum creatinine
         tested_5_unfil_male_cor = reactive({cor.test(death_filter_scr_male()$serum_creatinine,
                                                      death_filter_crphk_male()$creatinine_phosphokinase,
                                                      method = "pearson")$estimate
@@ -573,7 +572,7 @@ shinyServer(
         
         # *** FEMALE FEMALE FEMALE FEMALE ***
         
-        # filter serum sodium for females with high serum creatinine
+        # filter creatinine phosphokinase for females with high serum creatinine
         death_filter_crphk_female_high_scr = reactive({
             death_filter_high_scr() %>%
                 filter(., sex=="F") %>%
@@ -581,23 +580,23 @@ shinyServer(
         })
 
         
-        # filter serum sodium for females
+        # filter creatinine phosphokinase for females
         death_filter_crphk_female = reactive({
             death_filter() %>% 
                 filter(., sex=="F") %>% 
                 select(., creatinine_phosphokinase)
         })
         
-        # correlation calculation for female serum creatinine and female serum sodium for high serum creatinine
-        tested_5_fil_female_cor = reactive({cor.test(death_filter_scr_female_high_scr()$serum_creatinine,
-                                                     death_filter_crphk_female_high_scr()$creatinine_phosphokinase,
+        # correlation calculation for female creatinine phosphokinase and femal serum creatinine for high serum creatinine
+        tested_5_fil_female_cor = reactive({cor.test(death_filter_crphk_female_high_scr()$creatinine_phosphokinase,
+                                                     death_filter_scr_female_high_scr()$serum_creatinine,
                                                      method = "pearson")$estimate
         })
         
         
-        # correlation calculation for female serum creatinine and female serum sodium 
-        tested_5_unfil_female_cor = reactive({cor.test(death_filter_scr_female()$serum_creatinine,
-                                                       death_filter_crphk_female()$creatinine_phosphokinase,
+        # correlation calculation for female creatinine phosphokinase and female serum creatinine 
+        tested_5_unfil_female_cor = reactive({cor.test(death_filter_crphk_female()$creatinine_phosphokinase,
+                                                       death_filter_scr_female()$serum_creatinine,
                                                        method = "pearson")$estimate
         })
         
@@ -623,14 +622,14 @@ shinyServer(
          # text output for graph 1
         output$crphk_scr_filtered_stats = renderText({
             paste("The Pearson correlation coefficient between ", 
-                  "<i>", "Serum Creatinine levels and Creatinine Phosphokinase levels ", "</i>",
+                  "<i>", "Creatinine Phosphokinase levels and Serum Creatinine levels ", "</i>",
                   "for females with high Serum Creatinine levels is:",
                   "<br/>",
                   "<b>", signif(tested_5_fil_female_cor(), digits = 3), "</b>", 
                   "<br/>",
                   "<br/>",
                   "The Pearson correlation coefficient between ", 
-                  "<i>", "Serum Creatinine levels and Creatinine Phosphokinase levels ", "</i>",
+                  "<i>", "Creatinine Phosphokinase levels and Serum Creatinine levels ", "</i>",
                   "for males with high Serum Creatinine levels is:", 
                   "<br/>",
                   "<b>", signif(tested_5_fil_male_cor(), digits = 3), "</b>", 
@@ -649,14 +648,14 @@ shinyServer(
         # text output for graph 2
         output$crphk_scr_unfiltered_stats = renderText({
             paste("The Pearson correlation coefficient between ", 
-                  "<i>", "Serum Creatinine levels and Creatinine Phosphokinase levels ", "</i>",
+                  "<i>", "Creatinine Phosphokinase levels and Serum Creatinine levels ", "</i>",
                   "for all females is:",
                   "<br/>",
                   "<b>", signif(tested_5_unfil_female_cor(), digits = 3), "</b>", 
                   "<br/>",
                   "<br/>",
                   "The Pearson correlation coefficient between ", 
-                  "<i>", "Serum Creatinine levels and Creatinine Phosphokinase levels ", "</i>",
+                  "<i>", "Creatinine Phosphokinase levels and Serum Creatinine levels ", "</i>",
                   "for males is:", 
                   "<br/>",
                   "<b>", signif(tested_5_unfil_male_cor(), digits = 3), "</b>", 
@@ -700,7 +699,7 @@ shinyServer(
                 select(., ejection_fraction)
         })
         
-        # correlation calculation for male serum creatinine and male serum sodium 
+        # correlation calculation for male serum creatinine and male ejection fraction
         tested_6a_unfil_male_cor = reactive({cor.test(death_filter_scr_male()$serum_creatinine,
                                                      death_filter_ef_male()$ejection_fraction,
                                                      method = "pearson")$estimate
@@ -710,16 +709,15 @@ shinyServer(
         
         # *** FEMALE FEMALE FEMALE FEMALE ***
         
-        # filter serum sodium for females
+        # filter ejection fraction for females
         death_filter_ef_female = reactive({
             death_filter() %>% 
                 filter(., sex=="F") %>% 
                 select(., ejection_fraction)
         })
         
-        #** Tab 6a T Test ############################################################################################
         
-        # correlation calculation for female serum creatinine and female serum sodium 
+        # correlation calculation for female serum creatinine and female ejection fraction 
         tested_6a_unfil_female_cor = reactive({cor.test(death_filter_scr_female()$serum_creatinine,
                                                        death_filter_ef_female()$ejection_fraction,
                                                        method = "pearson")$estimate
@@ -779,14 +777,14 @@ shinyServer(
         
         # *** MALE MALE MALE ***
         
-        # filter ejection fraction for males
+        # filter platelets for males
         death_filter_plt_male = reactive({
             death_filter() %>%
                 filter(., sex=="M") %>%
                 select(., platelets)
         })
         
-        # correlation calculation for male serum creatinine and male serum sodium 
+        # correlation calculation for male serum creatinine and male platelets
         tested_6b_unfil_male_cor = reactive({cor.test(death_filter_scr_male()$serum_creatinine,
                                                       death_filter_plt_male()$platelets,
                                                       method = "pearson")$estimate
@@ -796,21 +794,18 @@ shinyServer(
         
         # *** FEMALE FEMALE FEMALE FEMALE ***
         
-        # filter serum sodium for females
+        # filter platelets for females
         death_filter_plt_female = reactive({
             death_filter() %>% 
                 filter(., sex=="F") %>% 
                 select(., platelets)
         })
         
-        # correlation calculation for female serum creatinine and female serum sodium 
+        # correlation calculation for female serum creatinine and female platelets 
         tested_6b_unfil_female_cor = reactive({cor.test(death_filter_scr_female()$serum_creatinine,
                                                         death_filter_plt_female()$platelets,
                                                         method = "pearson")$estimate
         })
-        
-        
-        #** Tab 6b T Test ##################################################################################################
         
         # T test between male and female
         # t statistic for platelets for high serum creatinine
