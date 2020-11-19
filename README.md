@@ -11,5 +11,5 @@ The 3 files used with RStudio are:
   - ui.R
   - server.R
  
-The dataset is from https://www.kaggle.com/andrewmvd/heart-failure-clinical-data/ and was pre-cleaned
+The pre-cleaned dataset is from https://www.kaggle.com/andrewmvd/heart-failure-clinical-data/
 
