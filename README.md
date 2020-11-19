@@ -1,6 +1,6 @@
 # Shiny_App_Project
 Shiny App Project using Heart Failure Clinical Records data for NYC Data Science Academy September 2020 Part-Time Bootcamp
-
+\n
 (Special thanks to the instructors and TAs!)
 
 
