@@ -13,3 +13,4 @@ The 3 files used with RStudio are:
  
 The pre-cleaned dataset is from https://www.kaggle.com/andrewmvd/heart-failure-clinical-data/
 
+The deployed application can be found here: https://tdch.shinyapps.io/Shiny_App_Project/
